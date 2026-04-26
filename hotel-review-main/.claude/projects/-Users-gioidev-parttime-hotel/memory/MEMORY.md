@@ -1,0 +1,1 @@
+- [Vietnamese content](feedback_vietnamese_content.md) — Use Vietnamese for all user-facing content, mock data, UI labels
