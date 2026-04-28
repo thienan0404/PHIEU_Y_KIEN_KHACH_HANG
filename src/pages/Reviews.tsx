@@ -359,7 +359,7 @@ export default function Reviews() {
                     {headerGroup.headers.map((header) => (
                       <th
                         key={header.id}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase whitespace-nowrap"
                       >
                         {flexRender(
                           header.column.columnDef.header,
@@ -379,7 +379,7 @@ export default function Reviews() {
                     className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
+                      <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
