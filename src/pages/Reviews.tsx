@@ -42,7 +42,9 @@ export default function Reviews() {
 
   const { branches, selectedBranchId } = useBranchStore();
   const [selectedCaregiverId, setSelectedCaregiverId] = useState('');
+
   void selectedBranchId;
+
   const branchMap = useMemo(
     () => new Map(branches.map((branch) => [branch.id, branch.name.trim()])),
     [branches],
@@ -98,7 +100,6 @@ export default function Reviews() {
         cell: ({ getValue }) => (
           <span className="text-sm">{formatDate(String(getValue()))}</span>
         ),
-        size: 100,
       },
       {
         accessorKey: 'branch_id',
@@ -112,7 +113,6 @@ export default function Reviews() {
             </span>
           );
         },
-        size: 160,
       },
       {
         accessorKey: 'guest_name',
@@ -120,7 +120,6 @@ export default function Reviews() {
         cell: ({ getValue }) => (
           <span className="text-sm font-medium">{String(getValue())}</span>
         ),
-        size: 140,
       },
       {
         accessorKey: 'channel',
@@ -130,7 +129,6 @@ export default function Reviews() {
             {channelLabel(getValue() as ReviewChannel)}
           </span>
         ),
-        size: 110,
       },
       {
         accessorKey: 'rating',
@@ -138,7 +136,6 @@ export default function Reviews() {
         cell: ({ getValue }) => (
           <StarRating rating={getValue() as number} size={14} />
         ),
-        size: 100,
       },
       {
         accessorKey: 'sentiment',
@@ -148,7 +145,6 @@ export default function Reviews() {
             {sentimentLabel(getValue() as Sentiment)}
           </Badge>
         ),
-        size: 100,
       },
       {
         accessorKey: 'status',
@@ -158,7 +154,6 @@ export default function Reviews() {
             {statusLabel(getValue() as ReviewStatus)}
           </Badge>
         ),
-        size: 100,
       },
       {
         accessorKey: 'collected_by',
@@ -189,7 +184,6 @@ export default function Reviews() {
             </select>
           );
         },
-        size: 170,
       },
     ],
     [branchMap, updateReview],
