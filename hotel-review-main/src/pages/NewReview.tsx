@@ -18,26 +18,46 @@ import {
 
 import { ReviewChannel, ReviewStatus } from '@/types';
 
-// ✅ FIX ZOD V4
 const reviewChannelValues = Object.values(ReviewChannel) as [
   ReviewChannel,
   ...ReviewChannel[],
 ];
 
-const schema = z.object({
-  branch_id: z.string().min(1, 'Vui lòng chọn chi nhánh'),
-  guest_name: z.string().min(1, 'Vui lòng nhập tên khách'),
-  guest_phone: z.string().optional(),
-  guest_email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  channel: z.enum(reviewChannelValues, {
-    message: 'Vui lòng chọn kênh',
-  }),
-  content: z.string().min(10, 'Nội dung tối thiểu 10 ký tự'),
-  notes: z.string().optional(),
-  stay_date: z.string().optional(),
-  response_content: z.string().optional(),
-  action_taken: z.string().optional(),
-});
+const schema = z
+  .object({
+    branch_id: z.string().min(1, 'Vui lòng chọn chi nhánh'),
+    guest_name: z.string().min(1, 'Vui lòng nhập tên khách'),
+    guest_phone: z.string().optional(),
+    guest_email: z
+      .string()
+      .email('Email không hợp lệ')
+      .optional()
+      .or(z.literal('')),
+
+    channel: z.enum(reviewChannelValues, {
+      message: 'Vui lòng chọn kênh',
+    }),
+
+    content: z.string().min(10, 'Nội dung tối thiểu 10 ký tự'),
+    notes: z.string().optional(),
+
+    check_in_date: z.string().optional(),
+    check_out_date: z.string().optional(),
+
+    response_content: z.string().optional(),
+    action_taken: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.check_in_date || !data.check_out_date) return true;
+
+      return data.check_out_date >= data.check_in_date;
+    },
+    {
+      message: 'Ngày check-out phải sau hoặc bằng ngày check-in',
+      path: ['check_out_date'],
+    },
+  );
 
 type FormData = z.infer<typeof schema>;
 
@@ -78,12 +98,10 @@ export default function NewReview() {
       rating,
       content: data.content,
       sentiment: detectSentiment(data.content),
-
-      // ⭐ QUAN TRỌNG: người tổng hợp = user đang login
       collected_by: currentUser.id,
-
       notes: data.notes || null,
-      stay_date: data.stay_date || null,
+      stay_date: data.check_in_date || null,
+      check_out_date: data.check_out_date || null,
       review_date: now.split('T')[0],
       status: hasResponse ? ReviewStatus.Reviewed : ReviewStatus.Pending,
       created_at: now,
@@ -173,6 +191,49 @@ export default function NewReview() {
           )}
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className={labelCls}>Số điện thoại</label>
+            <input
+              {...register('guest_phone')}
+              className={inputCls}
+              placeholder="0901234567"
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Email khách</label>
+            <input
+              {...register('guest_email')}
+              className={inputCls}
+              placeholder="email@gmail.com"
+            />
+            {errors.guest_email && (
+              <p className={errorCls}>{errors.guest_email.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className={labelCls}>Ngày check-in</label>
+            <input
+              type="date"
+              {...register('check_in_date')}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Ngày check-out</label>
+            <input
+              type="date"
+              {...register('check_out_date')}
+              className={inputCls}
+            />
+          </div>
+        </div>
+
         <div>
           <label className={labelCls}>Đánh giá sao *</label>
           <StarRating
@@ -189,11 +250,48 @@ export default function NewReview() {
             {...register('content')}
             rows={4}
             className={inputCls}
+            placeholder="Nhập nội dung đánh giá của khách..."
           />
           {errors.content && (
             <p className={errorCls}>{errors.content.message}</p>
           )}
         </div>
+
+        <div>
+          <label className={labelCls}>Ghi chú nội bộ</label>
+          <input
+            {...register('notes')}
+            className={inputCls}
+            placeholder="Ghi chú cho nhân viên..."
+          />
+        </div>
+
+        {isManager && (
+          <div className="border-t border-gray-200 pt-5 space-y-4">
+            <h3 className="text-sm font-semibold text-primary-900">
+              Phản hồi quản lý tùy chọn
+            </h3>
+
+            <div>
+              <label className={labelCls}>Nội dung phản hồi</label>
+              <textarea
+                {...register('response_content')}
+                rows={3}
+                className={inputCls}
+                placeholder="Nhập phản hồi cho đánh giá này..."
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Hành động đã thực hiện</label>
+              <input
+                {...register('action_taken')}
+                className={inputCls}
+                placeholder="Mô tả hành động đã thực hiện..."
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-2">
           <button

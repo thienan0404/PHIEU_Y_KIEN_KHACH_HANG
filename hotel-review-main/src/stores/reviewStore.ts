@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Review, ManagerResponse, ReviewFilters } from '@/types';
 import { reviews as initialReviews } from '@/data/reviews';
 import { responses as initialResponses } from '@/data/responses';
+import { useBranchStore } from '@/stores/branchStore';
 
 const REVIEWS_KEY = 'a25_reviews';
 const RESPONSES_KEY = 'a25_responses';
@@ -23,11 +24,19 @@ function normalizeText(value: string) {
   return value.trim().toLowerCase();
 }
 
-function applyFilters(reviews: Review[], filters: ReviewFilters) {
+function applyFilters(
+  reviews: Review[],
+  filters: ReviewFilters,
+  selectedBranchId: string | null,
+) {
   const q = filters.search ? normalizeText(filters.search) : '';
 
   return reviews
     .filter((review) => {
+      if (selectedBranchId && review.branch_id !== selectedBranchId) {
+        return false;
+      }
+
       if (filters.branch_id && review.branch_id !== filters.branch_id) {
         return false;
       }
@@ -124,7 +133,9 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
 
   getFilteredReviews: () => {
     const { reviews, filters } = get();
-    return applyFilters(reviews, filters);
+    const selectedBranchId = useBranchStore.getState().selectedBranchId;
+
+    return applyFilters(reviews, filters, selectedBranchId);
   },
 
   getTotalPages: () => {

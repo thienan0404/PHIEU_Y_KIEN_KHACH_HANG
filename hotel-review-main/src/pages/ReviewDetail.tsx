@@ -40,7 +40,8 @@ export default function ReviewDetail() {
   const { getReview, updateReview, getResponsesForReview, addResponse } =
     useReviewStore();
   const { getBranch } = useBranchStore();
-  const { currentUser, canRespondToReview } = useAuthStore();
+  const { currentUser, canRespondToSpecificReview, canFinalizeReview } =
+    useAuthStore();
 
   const review = getReview(id ?? '');
   const responses = getResponsesForReview(id ?? '');
@@ -80,7 +81,8 @@ export default function ReviewDetail() {
     );
   }
 
-  const canReply = canRespondToReview();
+  const canReply = canRespondToSpecificReview(review.branch_id);
+  const canFinalize = canFinalizeReview();
 
   const handleSubmitResponse = () => {
     if (!responseContent.trim() || !currentUser) return;
@@ -99,7 +101,7 @@ export default function ReviewDetail() {
     });
 
     if (review.status === ReviewStatus.Pending) {
-      updateReview(review.id, { status: ReviewStatus.Reviewed });
+      updateReview(review.id, { status: ReviewStatus.InProgress });
     }
 
     setResponseContent('');
@@ -124,9 +126,7 @@ export default function ReviewDetail() {
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-6">
-          {/* REVIEW CARD */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -183,7 +183,6 @@ export default function ReviewDetail() {
             </div>
           </section>
 
-          {/* RESPONSES */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
@@ -304,7 +303,6 @@ export default function ReviewDetail() {
           </section>
         </div>
 
-        {/* SIDEBAR */}
         <aside className="space-y-6">
           <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
@@ -325,12 +323,20 @@ export default function ReviewDetail() {
               />
 
               {review.stay_date && (
-                <InfoItem
-                  icon={<Calendar size={16} />}
-                  label="Ngày lưu trú"
-                  value={formatDate(review.stay_date)}
-                />
-              )}
+              <InfoItem
+                icon={<Calendar size={16} />}
+                label="Ngày check-in"
+                value={formatDate(review.stay_date)}
+              />
+            )}
+
+{review.check_out_date && (
+  <InfoItem
+    icon={<Calendar size={16} />}
+    label="Ngày check-out"
+    value={formatDate(review.check_out_date)}
+  />
+)}
 
               {review.guest_phone && (
                 <InfoItem
@@ -351,33 +357,37 @@ export default function ReviewDetail() {
               <InfoItem
                 icon={<User size={16} />}
                 label="Người tổng hợp"
-                value={collector?.name ?? review.collected_by}
+                value={collector?.name ?? 'Chưa xác định'}
               />
             </div>
           </section>
 
-          {canReply && (
+          {canFinalize && (
             <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">
                 Trạng thái xử lý
               </h3>
 
-              <select
-                value={review.status}
-                onChange={(event) =>
-                  handleStatusChange(event.target.value as ReviewStatus)
-                }
-                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {Object.values(ReviewStatus).map((status) => (
-                  <option key={status} value={status}>
-                    {statusLabel(status)}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleStatusChange(ReviewStatus.Reprocessing)}
+                  disabled={review.status === ReviewStatus.Reprocessing}
+                  className="w-full text-sm border border-yellow-300 text-yellow-700 rounded-xl px-3 py-2 hover:bg-yellow-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Xử lý lại
+                </button>
+
+                <button
+                  onClick={() => handleStatusChange(ReviewStatus.Resolved)}
+                  disabled={review.status === ReviewStatus.Resolved}
+                  className="w-full text-sm border border-green-300 text-green-700 rounded-xl px-3 py-2 hover:bg-green-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Đã xử lý
+                </button>
+              </div>
 
               <p className="text-xs text-gray-400 mt-3">
-                Dùng trạng thái để theo dõi tiến độ xử lý phản ánh của khách.
+                Chỉ Admin được quyền chốt trạng thái cuối cùng.
               </p>
             </section>
           )}

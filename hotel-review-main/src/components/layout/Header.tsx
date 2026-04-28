@@ -1,20 +1,25 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useBranchStore } from '@/stores/branchStore';
 import { users } from '@/data/users';
 import { roleLabel } from '@/lib/utils';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, LogOut } from 'lucide-react';
 
 export default function Header() {
-  const { currentUser, switchUser } = useAuthStore();
+  const navigate = useNavigate();
+
+  const { currentUser, switchUser, logout } = useAuthStore();
   const { branches, selectedBranchId, setSelectedBranch } = useBranchStore();
 
-  // tránh crash nếu currentUser null
   if (!currentUser) return null;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-      
-      {/* ===== CHỌN CHI NHÁNH ===== */}
       <div className="flex items-center gap-4">
         <select
           value={selectedBranchId ?? ''}
@@ -24,7 +29,7 @@ export default function Header() {
           <option value="">Tất cả chi nhánh</option>
 
           {branches
-            .filter((b) => b.isActive !== false) // FIX CHÍNH
+            .filter((b) => b.isActive !== false)
             .map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -33,7 +38,6 @@ export default function Header() {
         </select>
       </div>
 
-      {/* ===== USER ===== */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 bg-accent-50 px-3 py-1.5 rounded-lg border border-accent-200">
           <span className="text-xs text-accent-700 font-medium">Demo:</span>
@@ -63,6 +67,14 @@ export default function Header() {
             </p>
           </div>
         </div>
+
+        <button
+          onClick={handleLogout}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-600 transition"
+        >
+          <LogOut size={16} />
+          Đăng xuất
+        </button>
       </div>
     </header>
   );

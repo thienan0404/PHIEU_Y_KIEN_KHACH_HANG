@@ -8,9 +8,12 @@ export type BranchStatus =
 
 export const UserRole = {
   Admin: 'admin',
-  BranchManager: 'branch_manager',
-  Staff: 'staff',
-  Collector: 'collector',
+  Inspector: 'inspector',
+  Trainer: 'trainer',
+  ReceptionLeader: 'reception_leader',
+  BranchDirector: 'branch_director',
+  BusinessDirector: 'business_director',
+  CustomerService: 'customer_service',
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
@@ -43,7 +46,8 @@ export type Sentiment = (typeof Sentiment)[keyof typeof Sentiment];
 
 export const ReviewStatus = {
   Pending: 'pending',
-  Reviewed: 'reviewed',
+  InProgress: 'in_progress',
+  Reprocessing: 'reprocessing',
   Resolved: 'resolved',
   Archived: 'archived',
 } as const;
@@ -93,6 +97,7 @@ export interface Review {
   status: ReviewStatus;
   created_at: string;
   updated_at: string;
+  check_out_date?: string | null;
 }
 
 export interface ManagerResponse {

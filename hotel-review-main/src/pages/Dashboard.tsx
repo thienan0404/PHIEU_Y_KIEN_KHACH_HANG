@@ -1,49 +1,111 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { MessageSquare, Star, Clock, CheckCircle } from 'lucide-react';
+import { format, subDays, parseISO } from 'date-fns';
+
 import { useReviewStore } from '@/stores/reviewStore';
 import { useBranchStore } from '@/stores/branchStore';
 import { useAuthStore } from '@/stores/authStore';
+
 import StatCard from '@/components/dashboard/StatCard';
 import StarRating from '@/components/common/StarRating';
 import Badge from '@/components/common/Badge';
-import { formatDate, sentimentColor, sentimentLabel, channelLabel, statusColor, statusLabel } from '@/lib/utils';
-import { ReviewStatus, ReviewChannel } from '@/types';
-import { format, subDays, parseISO } from 'date-fns';
+
+import {
+  formatDate,
+  sentimentColor,
+  sentimentLabel,
+  channelLabel,
+  statusColor,
+  statusLabel,
+} from '@/lib/utils';
+
+import { ReviewStatus, ReviewChannel, UserRole } from '@/types';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   const { reviews, responses } = useReviewStore();
-  const { branches, selectedBranchId, getBranch } = useBranchStore();
+  const { selectedBranchId, getBranch } = useBranchStore();
   const { currentUser } = useAuthStore();
 
+  const userRole = currentUser?.role;
+  const userBranchId = currentUser?.branch_id;
+
   const filteredReviews = useMemo(() => {
-    let r = reviews;
-    if (selectedBranchId) r = r.filter(rv => rv.branch_id === selectedBranchId);
-    if (currentUser.branch_id && currentUser.role !== 'admin') {
-      r = r.filter(rv => rv.branch_id === currentUser.branch_id);
+    let result = reviews;
+
+    if (selectedBranchId) {
+      result = result.filter((review) => review.branch_id === selectedBranchId);
     }
-    return r;
-  }, [reviews, selectedBranchId, currentUser]);
+
+    if (userBranchId && userRole !== UserRole.Admin) {
+      result = result.filter((review) => review.branch_id === userBranchId);
+    }
+
+    return result;
+  }, [reviews, selectedBranchId, userRole, userBranchId]);
 
   const stats = useMemo(() => {
     const total = filteredReviews.length;
-    const avgRating = total ? (filteredReviews.reduce((s, r) => s + r.rating, 0) / total).toFixed(1) : '0';
-    const pending = filteredReviews.filter(r => r.status === ReviewStatus.Pending).length;
-    const respondedIds = new Set(responses.map(r => r.review_id));
-    const responseRate = total ? Math.round((filteredReviews.filter(r => respondedIds.has(r.id)).length / total) * 100) : 0;
-    return { total, avgRating, pending, responseRate };
+
+    const avgRating = total
+      ? (
+          filteredReviews.reduce((sum, review) => sum + review.rating, 0) /
+          total
+        ).toFixed(1)
+      : '0';
+
+    const pending = filteredReviews.filter(
+      (review) => review.status === ReviewStatus.Pending,
+    ).length;
+
+    const respondedIds = new Set(
+      responses.map((response) => response.review_id),
+    );
+
+    const responseRate = total
+      ? Math.round(
+          (filteredReviews.filter((review) => respondedIds.has(review.id))
+            .length /
+            total) *
+            100,
+        )
+      : 0;
+
+    return {
+      total,
+      avgRating,
+      pending,
+      responseRate,
+    };
   }, [filteredReviews, responses]);
 
   const chartData = useMemo(() => {
     const days: Record<string, number> = {};
+
     for (let i = 29; i >= 0; i--) {
-      const d = format(subDays(new Date('2026-04-10'), i), 'yyyy-MM-dd');
-      days[d] = 0;
+      const date = format(subDays(new Date('2026-04-10'), i), 'yyyy-MM-dd');
+      days[date] = 0;
     }
-    filteredReviews.forEach(r => {
-      if (days[r.review_date] !== undefined) days[r.review_date]++;
+
+    filteredReviews.forEach((review) => {
+      if (days[review.review_date] !== undefined) {
+        days[review.review_date] += 1;
+      }
     });
+
     return Object.entries(days).map(([date, count]) => ({
       date: format(parseISO(date), 'dd/MM'),
       count,
@@ -52,8 +114,15 @@ export default function Dashboard() {
 
   const channelData = useMemo(() => {
     const counts: Record<string, number> = {};
-    Object.values(ReviewChannel).forEach(c => { counts[c] = 0; });
-    filteredReviews.forEach(r => { counts[r.channel]++; });
+
+    Object.values(ReviewChannel).forEach((channel) => {
+      counts[channel] = 0;
+    });
+
+    filteredReviews.forEach((review) => {
+      counts[review.channel] += 1;
+    });
+
     return Object.entries(counts).map(([channel, count]) => ({
       channel: channelLabel(channel as ReviewChannel),
       count,
@@ -61,24 +130,46 @@ export default function Dashboard() {
   }, [filteredReviews]);
 
   const topBranches = useMemo(() => {
-    const branchStats: Record<string, { total: number; sumRating: number }> = {};
-    filteredReviews.forEach(r => {
-      if (!branchStats[r.branch_id]) branchStats[r.branch_id] = { total: 0, sumRating: 0 };
-      branchStats[r.branch_id].total++;
-      branchStats[r.branch_id].sumRating += r.rating;
+    const branchStats: Record<
+      string,
+      {
+        total: number;
+        sumRating: number;
+      }
+    > = {};
+
+    filteredReviews.forEach((review) => {
+      if (!branchStats[review.branch_id]) {
+        branchStats[review.branch_id] = {
+          total: 0,
+          sumRating: 0,
+        };
+      }
+
+      branchStats[review.branch_id].total += 1;
+      branchStats[review.branch_id].sumRating += review.rating;
     });
+
     return Object.entries(branchStats)
-      .map(([id, s]) => ({ id, name: getBranch(id)?.name ?? id, avgRating: s.sumRating / s.total, total: s.total }))
+      .map(([id, stat]) => ({
+        id,
+        name: getBranch(id)?.name.trim() ?? id,
+        avgRating: stat.sumRating / stat.total,
+        total: stat.total,
+      }))
       .sort((a, b) => b.avgRating - a.avgRating)
       .slice(0, 5);
   }, [filteredReviews, getBranch]);
 
-  const recentReviews = useMemo(() =>
-    [...filteredReviews].sort((a, b) => b.review_date.localeCompare(a.review_date)).slice(0, 10),
-    [filteredReviews]
+  const recentReviews = useMemo(
+    () =>
+      [...filteredReviews]
+        .sort((a, b) => b.review_date.localeCompare(a.review_date))
+        .slice(0, 10),
+    [filteredReviews],
   );
 
-  const navigate = useNavigate();
+  if (!currentUser) return null;
 
   return (
     <div className="space-y-6">
@@ -123,15 +214,15 @@ export default function Dashboard() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Top 5 chi nhánh</h2>
           <div className="space-y-3">
-            {topBranches.map((b, i) => (
-              <div key={b.id} className="flex items-center justify-between">
+            {topBranches.map((branch, index) => (
+              <div key={branch.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-primary-600 w-5">#{i + 1}</span>
-                  <span className="text-sm text-gray-700">{b.name}</span>
+                  <span className="text-xs font-bold text-primary-600 w-5">#{index + 1}</span>
+                  <span className="text-sm text-gray-700">{branch.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StarRating rating={Math.round(b.avgRating)} size={12} />
-                  <span className="text-xs text-gray-500">{b.avgRating.toFixed(1)}</span>
+                  <StarRating rating={Math.round(branch.avgRating)} size={12} />
+                  <span className="text-xs text-gray-500">{branch.avgRating.toFixed(1)}</span>
                 </div>
               </div>
             ))}
@@ -141,23 +232,23 @@ export default function Dashboard() {
         <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Đánh giá gần đây</h2>
           <div className="space-y-3">
-            {recentReviews.map(r => (
+            {recentReviews.map((review) => (
               <div
-                key={r.id}
-                onClick={() => navigate(`/reviews/${r.id}`)}
+                key={review.id}
+                onClick={() => navigate(`/reviews/${review.id}`)}
                 className="flex items-center justify-between p-2 rounded hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-800 truncate">{r.guest_name}</span>
-                    <StarRating rating={r.rating} size={12} />
-                    <Badge className={sentimentColor(r.sentiment)}>{sentimentLabel(r.sentiment)}</Badge>
+                    <span className="text-sm font-medium text-gray-800 truncate">{review.guest_name}</span>
+                    <StarRating rating={review.rating} size={12} />
+                    <Badge className={sentimentColor(review.sentiment)}>{sentimentLabel(review.sentiment)}</Badge>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">{r.content}</p>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{review.content}</p>
                 </div>
                 <div className="text-right ml-4 shrink-0">
-                  <Badge className={statusColor(r.status)}>{statusLabel(r.status)}</Badge>
-                  <p className="text-xs text-gray-400 mt-1">{formatDate(r.review_date)}</p>
+                  <Badge className={statusColor(review.status)}>{statusLabel(review.status)}</Badge>
+                  <p className="text-xs text-gray-400 mt-1">{formatDate(review.review_date)}</p>
                 </div>
               </div>
             ))}

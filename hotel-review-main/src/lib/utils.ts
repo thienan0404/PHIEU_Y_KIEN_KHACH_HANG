@@ -42,28 +42,63 @@ export function channelLabel(channel: ReviewChannel): string {
 
 export function statusLabel(status: ReviewStatus): string {
   switch (status) {
-    case ReviewStatus.Pending: return 'Chờ xử lý';
-    case ReviewStatus.Reviewed: return 'Đã xem';
-    case ReviewStatus.Resolved: return 'Đã xử lý';
-    case ReviewStatus.Archived: return 'Lưu trữ';
+   case ReviewStatus.Pending:
+  return 'Chờ xử lý';
+  case ReviewStatus.InProgress:
+  return 'Đang xử lý';
+  case ReviewStatus.Reprocessing:
+  return 'Xử lý lại';
+  case ReviewStatus.Resolved:
+  return 'Đã xử lý';
+  case ReviewStatus.Archived:
+  return 'Lưu trữ';
   }
 }
 
 export function statusColor(status: ReviewStatus): string {
   switch (status) {
-    case ReviewStatus.Pending: return 'bg-orange-100 text-orange-800';
-    case ReviewStatus.Reviewed: return 'bg-blue-100 text-blue-800';
-    case ReviewStatus.Resolved: return 'bg-green-100 text-green-800';
-    case ReviewStatus.Archived: return 'bg-gray-100 text-gray-800';
+    case ReviewStatus.Pending:
+      return 'bg-orange-100 text-orange-800';
+
+    case ReviewStatus.InProgress:
+      return 'bg-blue-100 text-blue-800';
+
+    case ReviewStatus.Reprocessing:
+      return 'bg-yellow-100 text-yellow-800';
+
+    case ReviewStatus.Resolved:
+      return 'bg-green-100 text-green-800';
+
+    case ReviewStatus.Archived:
+      return 'bg-gray-100 text-gray-800';
   }
 }
 
-export function roleLabel(role: UserRole): string {
+export function roleLabel(role: UserRole) {
   switch (role) {
-    case UserRole.Admin: return 'Quản trị viên';
-    case UserRole.BranchManager: return 'Quản lý chi nhánh';
-    case UserRole.Staff: return 'Nhân viên';
-    case UserRole.Collector: return 'Thu thập viên';
+    case UserRole.Admin:
+      return 'Quản trị viên';
+
+    case UserRole.Inspector:
+      return 'Phòng Thanh Tra';
+
+    case UserRole.Trainer:
+      return 'Phòng Đào Tạo';
+
+    case UserRole.ReceptionLeader:
+      return 'Tổ Trưởng Lễ Tân';
+
+    case UserRole.BranchDirector:
+      return 'Ban Giám Đốc Chi Nhánh';
+
+    case UserRole.BusinessDirector:
+      return 'Giám Đốc Kinh Doanh';
+
+    case UserRole.CustomerService:
+      return 'Phòng Khách Hàng & Dữ Liệu';
+
+    default:
+      return 'Không xác định';
   }
 }
 

@@ -40,9 +40,9 @@ export default function Reviews() {
     updateReview,
   } = useReviewStore();
 
-  const { branches } = useBranchStore();
+  const { branches, selectedBranchId } = useBranchStore();
   const [selectedCaregiverId, setSelectedCaregiverId] = useState('');
-
+  void selectedBranchId;
   const branchMap = useMemo(
     () => new Map(branches.map((branch) => [branch.id, branch.name.trim()])),
     [branches],
