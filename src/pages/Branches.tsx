@@ -52,7 +52,7 @@ export default function Branches() {
       }
 
       stats[review.branch_id].total += 1;
-      stats[review.branch_id].sumRating += review.rating;
+      stats[review.branch_id].sumRating += review.rating ?? 0;
 
       if (review.status === ReviewStatus.Pending) {
         stats[review.branch_id].pending += 1;

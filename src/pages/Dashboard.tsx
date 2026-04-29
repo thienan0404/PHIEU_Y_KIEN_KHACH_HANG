@@ -62,7 +62,7 @@ export default function Dashboard() {
 
     const avgRating = total
       ? (
-          filteredReviews.reduce((sum, review) => sum + review.rating, 0) /
+          filteredReviews.reduce((sum, review) =>sum + (review.rating ?? 0), 0) /
           total
         ).toFixed(1)
       : '0';
@@ -147,7 +147,7 @@ export default function Dashboard() {
       }
 
       branchStats[review.branch_id].total += 1;
-      branchStats[review.branch_id].sumRating += review.rating;
+      branchStats[review.branch_id].sumRating += review.rating ?? 0;
     });
 
     return Object.entries(branchStats)
@@ -241,7 +241,7 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-800 truncate">{review.guest_name}</span>
-                    <StarRating rating={review.rating} size={12} />
+                    <StarRating rating={review.rating ?? 0} size={12} />
                     <Badge className={sentimentColor(review.sentiment)}>{sentimentLabel(review.sentiment)}</Badge>
                   </div>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{review.content}</p>

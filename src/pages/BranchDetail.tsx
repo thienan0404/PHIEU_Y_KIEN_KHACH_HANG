@@ -90,7 +90,7 @@ function ReviewsForBranch({ branchId }: { branchId: string }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">{r.guest_name}</span>
-                <StarRating rating={r.rating} size={12} />
+                <StarRating rating={r.rating ?? 0} size={12} />
                 <Badge className={sentimentColor(r.sentiment)}>{sentimentLabel(r.sentiment)}</Badge>
               </div>
               <p className="text-xs text-gray-500 truncate mt-0.5">{r.content}</p>
