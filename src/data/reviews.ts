@@ -2,7 +2,9 @@ import type { Review } from '@/types';
 import { ReviewChannel, Sentiment, ReviewStatus } from '@/types';
 import { branches } from '@/data/branches';
 import { caregivers } from '@/data/caregivers';
+
 const branchIds = branches.map((branch) => branch.id);
+const caregiverIds = caregivers.map((c) => c.id);
 
 const positiveContents = [
   'Phòng sạch sẽ, nhân viên thân thiện và hỗ trợ nhiệt tình.',
@@ -43,12 +45,10 @@ const guestNames = [
   'Tanaka Hiroshi',
 ];
 
-const caregiverIds = caregivers.map((c) => c.id);
-
 const channels = [
+  ReviewChannel.GoogleMaps,
   ReviewChannel.SocialMedia,
   ReviewChannel.Phone,
-  ReviewChannel.GoogleMaps,
   ReviewChannel.WalkIn,
   ReviewChannel.Other,
 ];
@@ -56,21 +56,10 @@ const channels = [
 const statuses = [
   ReviewStatus.Pending,
   ReviewStatus.InProgress,
+  ReviewStatus.Reprocessing,
   ReviewStatus.Resolved,
   ReviewStatus.Archived,
 ];
-
-function getSentimentByRating(rating: number) {
-  if (rating >= 4) return Sentiment.Positive;
-  if (rating === 3) return Sentiment.Neutral;
-  return Sentiment.Negative;
-}
-
-function getContentBySentiment(sentiment: Sentiment) {
-  if (sentiment === Sentiment.Positive) return positiveContents;
-  if (sentiment === Sentiment.Neutral) return neutralContents;
-  return negativeContents;
-}
 
 function pad(num: number) {
   return String(num).padStart(3, '0');
@@ -80,28 +69,58 @@ function getRandomItem<T>(arr: T[], index: number): T {
   return arr[index % arr.length];
 }
 
+function getRatingByChannel(channel: ReviewChannel, index: number) {
+  if (channel === ReviewChannel.GoogleMaps) {
+    return (index % 5) + 1; // 1–5 sao
+  }
+
+  if (channel === ReviewChannel.SocialMedia) {
+    return (index % 10) + 1; // 1–10 điểm
+  }
+
+  return 0; // Phone / Walk-in / Other không có sao/điểm
+}
+
+function getSentimentByChannelRating(channel: ReviewChannel, rating: number, index: number) {
+  if (channel === ReviewChannel.GoogleMaps) {
+    if (rating >= 4) return Sentiment.Positive;
+    if (rating === 3) return Sentiment.Neutral;
+    return Sentiment.Negative;
+  }
+
+  if (channel === ReviewChannel.SocialMedia) {
+    if (rating >= 8) return Sentiment.Positive;
+    if (rating >= 5) return Sentiment.Neutral;
+    return Sentiment.Negative;
+  }
+
+  const sentiments = [Sentiment.Positive, Sentiment.Neutral, Sentiment.Negative];
+  return getRandomItem(sentiments, index);
+}
+
+function getContentBySentiment(sentiment: Sentiment) {
+  if (sentiment === Sentiment.Positive) return positiveContents;
+  if (sentiment === Sentiment.Neutral) return neutralContents;
+  return negativeContents;
+}
+
 function createReview(index: number): Review {
-  const rating = (index % 5) + 1;
-  const sentiment = getSentimentByRating(rating);
+  const channel = getRandomItem(channels, index);
+  const rating = getRatingByChannel(channel, index);
+  const sentiment = getSentimentByChannelRating(channel, rating, index);
   const contentPool = getContentBySentiment(sentiment);
 
   const day = ((index % 28) + 1).toString().padStart(2, '0');
   const month = ((index % 4) + 1).toString().padStart(2, '0');
   const reviewDate = `2026-${month}-${day}`;
 
-  const guestName = getRandomItem(guestNames, index);
-  const branchId = getRandomItem(branchIds, index);
-
   return {
     id: `rev-${pad(index + 1)}`,
-    branch_id: branchId,
-    guest_name: guestName,
+    branch_id: getRandomItem(branchIds, index),
+    guest_name: getRandomItem(guestNames, index),
     guest_phone: index % 3 === 0 ? `09${String(index).padStart(8, '0')}` : null,
-    guest_email:
-      index % 4 === 0
-        ? `guest${index + 1}@gmail.com`
-        : null,
-    channel: getRandomItem(channels, index),
+    guest_email: index % 4 === 0 ? `guest${index + 1}@gmail.com` : null,
+    channel,
     rating,
     content: getRandomItem(contentPool, index),
     sentiment,

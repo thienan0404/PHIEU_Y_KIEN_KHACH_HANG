@@ -98,7 +98,9 @@ export default function Reviews() {
         accessorKey: 'review_date',
         header: 'Ngày',
         cell: ({ getValue }) => (
-          <span className="text-sm">{formatDate(String(getValue()))}</span>
+          <span className="text-sm text-gray-700">
+            {formatDate(String(getValue()))}
+          </span>
         ),
       },
       {
@@ -108,7 +110,7 @@ export default function Reviews() {
           const branchId = String(getValue());
 
           return (
-            <span className="text-sm">
+            <span className="text-sm font-medium text-gray-700">
               {branchMap.get(branchId) ?? branchId}
             </span>
           );
@@ -118,24 +120,56 @@ export default function Reviews() {
         accessorKey: 'guest_name',
         header: 'Khách hàng',
         cell: ({ getValue }) => (
-          <span className="text-sm font-medium">{String(getValue())}</span>
+          <span className="text-sm font-semibold text-gray-900">
+            {String(getValue())}
+          </span>
         ),
       },
       {
         accessorKey: 'channel',
         header: 'Kênh',
-        cell: ({ getValue }) => (
-          <span className="text-xs">
-            {channelLabel(getValue() as ReviewChannel)}
-          </span>
-        ),
+        cell: ({ getValue }) => {
+          const channel = getValue() as ReviewChannel;
+
+          const iconMap: Record<ReviewChannel, string> = {
+            [ReviewChannel.GoogleMaps]: '⭐',
+            [ReviewChannel.SocialMedia]: '📱',
+            [ReviewChannel.Phone]: '☎️',
+            [ReviewChannel.WalkIn]: '🏨',
+            [ReviewChannel.Other]: '📌',
+          };
+
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+              <span>{iconMap[channel]}</span>
+              {channelLabel(channel)}
+            </span>
+          );
+        },
       },
       {
         accessorKey: 'rating',
         header: 'Đánh giá',
-        cell: ({ getValue }) => (
-          <StarRating rating={getValue() as number} size={14} />
-        ),
+        cell: ({ row, getValue }) => {
+          const rating = getValue() as number | null;
+          const channel = row.original.channel;
+
+          if (rating == null ) return null;
+
+          if (channel === ReviewChannel.GoogleMaps) {
+            return <StarRating rating={rating} size={14} />;
+          }
+
+          if (channel === ReviewChannel.SocialMedia) {
+            return (
+              <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                {rating}/10
+              </span>
+            );
+          }
+
+          return null;
+        },
       },
       {
         accessorKey: 'sentiment',
@@ -196,7 +230,7 @@ export default function Reviews() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-primary-900">Đánh giá</h1>
         <span className="text-sm text-gray-500">{totalFiltered} kết quả</span>
@@ -280,10 +314,10 @@ export default function Reviews() {
             }
             className="w-full sm:w-auto text-sm border border-gray-300 rounded-lg px-3 py-1.5"
           >
-            <option value="">Tất cả sao</option>
-            {[5, 4, 3, 2, 1].map((rating) => (
+            <option value="">Tất cả điểm/sao</option>
+            {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => (
               <option key={rating} value={rating}>
-                {rating} sao
+                {rating}
               </option>
             ))}
           </select>
@@ -351,7 +385,7 @@ export default function Reviews() {
             description="Thử thay đổi bộ lọc để xem kết quả khác."
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto">
             <table className="min-w-[950px] w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -359,7 +393,7 @@ export default function Reviews() {
                     {headerGroup.headers.map((header) => (
                       <th
                         key={header.id}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase whitespace-nowrap"
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase"
                       >
                         {flexRender(
                           header.column.columnDef.header,
@@ -376,10 +410,16 @@ export default function Reviews() {
                   <tr
                     key={row.id}
                     onClick={() => navigate(`/reviews/${row.original.id}`)}
-                    className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                    className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
+                      row.original.sentiment === Sentiment.Negative
+                        ? 'bg-red-50/40'
+                        : row.original.sentiment === Sentiment.Positive
+                          ? 'bg-green-50/30'
+                          : ''
+                    }`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
+                      <td key={cell.id} className="px-4 py-3">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),

@@ -30,7 +30,7 @@ import {
   generateId,
 } from '@/lib/utils';
 
-import { ReviewStatus } from '@/types';
+import { ReviewChannel,ReviewStatus } from '@/types';
 import { users } from '@/data/users';
 
 export default function ReviewDetail() {
@@ -158,9 +158,21 @@ export default function ReviewDetail() {
             </div>
 
             <div className="p-6 space-y-5">
-              <div>
-                <StarRating rating={review.rating} size={22} />
-              </div>
+              {review.rating ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Đánh giá:</span>
+
+            {review.channel === ReviewChannel.GoogleMaps && (
+              <StarRating rating={review.rating} size={22} />
+            )}
+
+            {review.channel === ReviewChannel.SocialMedia && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                {review.rating}/10
+              </span>
+    )}
+  </div>
+) : null}
 
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                 <p className="text-gray-800 leading-relaxed whitespace-pre-line">

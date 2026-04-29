@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
@@ -62,7 +62,7 @@ const schema = z
 type FormData = z.infer<typeof schema>;
 
 export default function NewReview() {
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const navigate = useNavigate();
@@ -76,13 +76,39 @@ export default function NewReview() {
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
+  const selectedChannel = useWatch({
+    control,
+    name: 'channel',
+  });
+
+  const isGoogleMaps = selectedChannel === ReviewChannel.GoogleMaps;
+  const isSocialMedia = selectedChannel === ReviewChannel.SocialMedia;
+  const shouldShowRating = isGoogleMaps || isSocialMedia;
+
   const onSubmit = (data: FormData) => {
     if (!currentUser) return;
+
+    if (shouldShowRating && !rating) {
+      setError('channel', {
+        type: 'manual',
+        message: isGoogleMaps
+          ? 'Vui lòng chọn số sao Google Maps'
+          : 'Vui lòng chọn điểm mạng xã hội',
+      });
+
+      return;
+    }
+
+    clearErrors('channel');
 
     const now = new Date().toISOString();
     const hasResponse = isManager && Boolean(data.response_content?.trim());
@@ -95,7 +121,7 @@ export default function NewReview() {
       guest_phone: data.guest_phone || null,
       guest_email: data.guest_email || null,
       channel: data.channel,
-      rating,
+      rating: rating ?? 0,
       content: data.content,
       sentiment: detectSentiment(data.content),
       collected_by: currentUser.id,
@@ -103,7 +129,7 @@ export default function NewReview() {
       stay_date: data.check_in_date || null,
       check_out_date: data.check_out_date || null,
       review_date: now.split('T')[0],
-      status: hasResponse ? ReviewStatus.InProgress : ReviewStatus.Pending,
+      status: hasResponse ? ReviewStatus.Resolved : ReviewStatus.Pending,
       created_at: now,
       updated_at: now,
     });
@@ -165,7 +191,16 @@ export default function NewReview() {
 
           <div>
             <label className={labelCls}>Kênh thu thập *</label>
-            <select {...register('channel')} className={inputCls}>
+            <select
+              {...register('channel', {
+                onChange: (e) => {
+                  setValue('channel', e.target.value as ReviewChannel);
+                  setRating(null);
+                  clearErrors('channel');
+                },
+              })}
+              className={inputCls}
+            >
               <option value="">Chọn kênh</option>
               {Object.values(ReviewChannel).map((channel) => (
                 <option key={channel} value={channel}>
@@ -178,6 +213,40 @@ export default function NewReview() {
             )}
           </div>
         </div>
+
+        {isGoogleMaps && (
+          <div>
+            <label className={labelCls}>Đánh giá sao Google Maps *</label>
+            <StarRating
+              rating={rating ?? 0}
+              size={28}
+              interactive
+              onChange={setRating}
+            />
+          </div>
+        )}
+
+        {isSocialMedia && (
+          <div>
+            <label className={labelCls}>Điểm đánh giá mạng xã hội *</label>
+            <select
+              value={rating ?? ''}
+              onChange={(e) =>
+                setRating(e.target.value ? Number(e.target.value) : null)
+              }
+              className={inputCls}
+            >
+              <option value="">Chọn điểm</option>
+              {Array.from({ length: 10 }, (_, index) => index + 1).map(
+                (score) => (
+                  <option key={score} value={score}>
+                    {score}/10
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className={labelCls}>Tên khách hàng *</label>
@@ -232,16 +301,6 @@ export default function NewReview() {
               className={inputCls}
             />
           </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Đánh giá sao *</label>
-          <StarRating
-            rating={rating}
-            size={28}
-            interactive
-            onChange={setRating}
-          />
         </div>
 
         <div>

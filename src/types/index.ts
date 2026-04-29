@@ -87,7 +87,7 @@ export interface Review {
   guest_phone: string | null;
   guest_email: string | null;
   channel: ReviewChannel;
-  rating: number;
+  rating: number  | null ;
   content: string;
   sentiment: Sentiment;
   collected_by: string;
