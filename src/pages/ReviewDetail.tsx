@@ -30,7 +30,7 @@ import {
   generateId,
 } from '@/lib/utils';
 
-import { ReviewChannel,ReviewStatus } from '@/types';
+import { ReviewChannel, ReviewStatus } from '@/types';
 import { users } from '@/data/users';
 
 export default function ReviewDetail() {
@@ -53,6 +53,8 @@ export default function ReviewDetail() {
   const [responseContent, setResponseContent] = useState('');
   const [actionTaken, setActionTaken] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showImages, setShowImages] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   if (!review) {
     return (
@@ -159,26 +161,52 @@ export default function ReviewDetail() {
 
             <div className="p-6 space-y-5">
               {review.rating ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">Đánh giá:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Đánh giá:</span>
 
-            {review.channel === ReviewChannel.GoogleMaps && (
-              <StarRating rating={review.rating} size={22} />
-            )}
+                  {review.channel === ReviewChannel.GoogleMaps && (
+                    <StarRating rating={review.rating} size={22} />
+                  )}
 
-            {review.channel === ReviewChannel.SocialMedia && (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                {review.rating}/10
-              </span>
-    )}
-  </div>
-) : null}
+                  {review.channel === ReviewChannel.SocialMedia && (
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                      {review.rating}/10
+                    </span>
+                  )}
+                </div>
+              ) : null}
 
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                 <p className="text-gray-800 leading-relaxed whitespace-pre-line">
                   {review.content}
                 </p>
               </div>
+
+              {review.images && review.images.length > 0 && (
+                <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowImages((prev) => !prev)}
+                    className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Image ({review.images.length})
+                  </button>
+
+                  {showImages && (
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {review.images.map((img, index) => (
+                        <img
+                          key={`${img}-${index}`}
+                          src={img}
+                          alt={`Ảnh đính kèm ${index + 1}`}
+                          className="rounded-lg border cursor-pointer hover:opacity-90 transition"
+                          onClick={() => setSelectedImage(img)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {review.notes && (
                 <div className="rounded-xl bg-yellow-50 border border-yellow-100 p-4">
@@ -335,20 +363,20 @@ export default function ReviewDetail() {
               />
 
               {review.stay_date && (
-              <InfoItem
-                icon={<Calendar size={16} />}
-                label="Ngày check-in"
-                value={formatDate(review.stay_date)}
-              />
-            )}
+                <InfoItem
+                  icon={<Calendar size={16} />}
+                  label="Ngày check-in"
+                  value={formatDate(review.stay_date)}
+                />
+              )}
 
-{review.check_out_date && (
-  <InfoItem
-    icon={<Calendar size={16} />}
-    label="Ngày check-out"
-    value={formatDate(review.check_out_date)}
-  />
-)}
+              {review.check_out_date && (
+                <InfoItem
+                  icon={<Calendar size={16} />}
+                  label="Ngày check-out"
+                  value={formatDate(review.check_out_date)}
+                />
+              )}
 
               {review.guest_phone && (
                 <InfoItem
@@ -405,6 +433,20 @@ export default function ReviewDetail() {
           )}
         </aside>
       </div>
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <img
+            src={selectedImage}
+            alt="Ảnh đính kèm"
+            className="max-h-[90vh] max-w-full rounded-lg bg-white"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

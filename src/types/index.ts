@@ -59,7 +59,6 @@ export interface Branch {
   id: string;
   name: string;
   address: string;
-
   code?: string;
   city?: string;
   status?: BranchStatus;
@@ -87,7 +86,7 @@ export interface Review {
   guest_phone: string | null;
   guest_email: string | null;
   channel: ReviewChannel;
-  rating: number  | null ;
+  rating: number | null;
   content: string;
   sentiment: Sentiment;
   collected_by: string;
@@ -95,9 +94,13 @@ export interface Review {
   stay_date: string | null;
   review_date: string;
   status: ReviewStatus;
+  check_out_date?: string | null;
+
+  // 🔥 PHẦN QUAN TRỌNG (ảnh paste)
+  images?: string[];
+
   created_at: string;
   updated_at: string;
-  check_out_date?: string | null;
 }
 
 export interface ManagerResponse {

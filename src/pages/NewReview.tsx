@@ -10,11 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 import StarRating from '@/components/common/StarRating';
 
-import {
-  detectSentiment,
-  generateId,
-  channelLabel,
-} from '@/lib/utils';
+import { detectSentiment, generateId, channelLabel } from '@/lib/utils';
 
 import { ReviewChannel, ReviewStatus } from '@/types';
 
@@ -50,7 +46,6 @@ const schema = z
   .refine(
     (data) => {
       if (!data.check_in_date || !data.check_out_date) return true;
-
       return data.check_out_date >= data.check_in_date;
     },
     {
@@ -63,6 +58,8 @@ type FormData = z.infer<typeof schema>;
 
 export default function NewReview() {
   const [rating, setRating] = useState<number | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const navigate = useNavigate();
@@ -94,6 +91,53 @@ export default function NewReview() {
   const isSocialMedia = selectedChannel === ReviewChannel.SocialMedia;
   const shouldShowRating = isGoogleMaps || isSocialMedia;
 
+  const addImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') {
+        setImages((prev) => [...prev, result]);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleFiles = (files: FileList | File[]) => {
+    Array.from(files).forEach(addImageFile);
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const files: File[] = [];
+
+    Array.from(event.clipboardData.items).forEach((item) => {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    });
+
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+
+    if (event.dataTransfer.files.length > 0) {
+      handleFiles(event.dataTransfer.files);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+  };
+
   const onSubmit = (data: FormData) => {
     if (!currentUser) return;
 
@@ -121,7 +165,7 @@ export default function NewReview() {
       guest_phone: data.guest_phone || null,
       guest_email: data.guest_email || null,
       channel: data.channel,
-      rating: rating ?? 0,
+      rating: shouldShowRating ? rating : null,
       content: data.content,
       sentiment: detectSentiment(data.content),
       collected_by: currentUser.id,
@@ -130,6 +174,7 @@ export default function NewReview() {
       check_out_date: data.check_out_date || null,
       review_date: now.split('T')[0],
       status: hasResponse ? ReviewStatus.Resolved : ReviewStatus.Pending,
+      images,
       created_at: now,
       updated_at: now,
     });
@@ -313,6 +358,58 @@ export default function NewReview() {
           />
           {errors.content && (
             <p className={errorCls}>{errors.content.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className={labelCls}>Ảnh đính kèm</label>
+
+          <div
+            tabIndex={0}
+            onPaste={handlePaste}
+            onDrop={handleDrop}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            className={`rounded-lg border-2 border-dashed p-4 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              isDragging
+                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                : 'border-gray-300 bg-gray-50 text-gray-500'
+            }`}
+          >
+            <p className="font-medium text-gray-700">
+              Kéo thả ảnh vào đây hoặc bấm vào khung rồi Ctrl + V
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              Ảnh sẽ được xem trước trước khi tạo đánh giá.
+            </p>
+          </div>
+
+          {images.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+              {images.map((image, index) => (
+                <div
+                  key={`${image}-${index}`}
+                  className="relative overflow-hidden rounded-lg border border-gray-200 bg-white"
+                >
+                  <img
+                    src={image}
+                    alt={`Ảnh đính kèm ${index + 1}`}
+                    className="h-24 w-full object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute right-1 top-1 rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white hover:bg-red-600"
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
